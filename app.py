@@ -1,3 +1,4 @@
+import os
 import json
 import streamlit as st
 import gspread
@@ -6,8 +7,10 @@ import pandas as pd
 from datetime import datetime
 import uuid
 
-# Load credentials from Streamlit secrets
-credentials_dict = st.secrets["gcp_service_account"]
+# Load credentials from a local file (for local testing)
+with open('gcp_service_account.json') as f:
+    credentials_dict = json.load(f)
+
 creds = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict)
 
 # Google Sheets authentication
@@ -48,6 +51,7 @@ def get_unique_id():
 # Function to add an entry
 def add_entry(username):
     sheet = get_user_sheet(username)
+    st.markdown("## Add New Entry")
     with st.form(key='add_entry_form'):
         in_out = st.selectbox("In/Out", ["In", "Out"])
         date = st.date_input("Date")
@@ -69,10 +73,10 @@ def add_entry(username):
 # Function to read entries
 def read_entries(username):
     sheet = get_user_sheet(username)
-    st.header("Entries")
+    st.markdown("## Entries")
     records = sheet.get_all_records()
     df = pd.DataFrame(records)
-    st.write(df)
+    st.dataframe(df)
     if st.button('Export to CSV'):
         df.to_csv(f'{username}_exported_data.csv', index=False)
         st.success(f"Data exported to '{username}_exported_data.csv'.")
@@ -83,7 +87,10 @@ def update_entry(username):
     records = sheet.get_all_records()
     df = pd.DataFrame(records)
     
-    ref_id = st.selectbox("Select Reference ID to update", df['Reference ID'].values)
+    st.markdown("## Update Entry")
+    df['Option'] = df.apply(lambda row: f"{row['Reference ID']} - {row['Name']} ({row['Domain']})", axis=1)
+    option = st.selectbox("Select Reference ID to update", df['Option'].values)
+    ref_id = df[df['Option'] == option]['Reference ID'].values[0]
     
     if ref_id:
         with st.form(key='update_entry_form'):
@@ -109,7 +116,10 @@ def delete_entry(username):
     records = sheet.get_all_records()
     df = pd.DataFrame(records)
     
-    ref_id = st.selectbox("Select Reference ID to delete", df['Reference ID'].values)
+    st.markdown("## Delete Entry")
+    df['Option'] = df.apply(lambda row: f"{row['Reference ID']} - {row['Name']} ({row['Domain']})", axis=1)
+    option = st.selectbox("Select Reference ID to delete", df['Option'].values)
+    ref_id = df[df['Option'] == option]['Reference ID'].values[0]
     
     if st.button("Delete Entry"):
         if ref_id in df['Reference ID'].values:
@@ -122,17 +132,32 @@ def delete_entry(username):
 # Function to generate a report
 def generate_report(username):
     sheet = get_user_sheet(username)
-    st.header("Monthly Report")
+    st.markdown("## Monthly Report")
     records = sheet.get_all_records()
     df = pd.DataFrame(records)
     df['Date'] = pd.to_datetime(df['Date'])
     df['Month'] = df['Date'].dt.to_period('M')
 
     monthly_report = df.groupby(['Month', 'In/Out'])['Total Amount'].sum().unstack().fillna(0)
+    monthly_report['Total Savings'] = monthly_report['In'] - monthly_report['Out']
     st.write(monthly_report)
 
 # Main function to handle the Streamlit app
 def main():
+    st.set_page_config(page_title="Personal Expense Tracker", layout="wide")
+    
+    st.markdown(
+        """
+        <style>
+        .sidebar .sidebar-content {
+            background-image: linear-gradient(#2e7bcf,#2e7bcf);
+            color: white;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+    
     if 'logged_in' not in st.session_state:
         st.session_state.logged_in = False
 
