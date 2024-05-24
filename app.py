@@ -7,7 +7,7 @@ from datetime import datetime
 import uuid
 
 # Load credentials from Streamlit secrets
-credentials_dict = json.loads(st.secrets["gcp_service_account"])
+credentials_dict = st.secrets["gcp_service_account"]
 creds = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict)
 
 # Google Sheets authentication
