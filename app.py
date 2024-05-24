@@ -1,4 +1,3 @@
-import os
 import json
 import streamlit as st
 import gspread
@@ -7,10 +6,8 @@ import pandas as pd
 from datetime import datetime
 import uuid
 
-# Load credentials from a local file (for local testing)
-with open('gcp_service_account.json') as f:
-    credentials_dict = json.load(f)
-
+# Load credentials from Streamlit secrets
+credentials_dict = json.loads(st.secrets["gcp_service_account"])
 creds = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict)
 
 # Google Sheets authentication
