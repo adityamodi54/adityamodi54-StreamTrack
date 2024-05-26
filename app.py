@@ -22,7 +22,7 @@ spreadsheet = client.open("Streamlit_track")
 user_data = {
     "adit": "shruti",
     "vikram": "rikita",
-    "ghanshyam": "jalpa"
+    "ghan": "jalpa"
 }
 
 # Simple authentication
